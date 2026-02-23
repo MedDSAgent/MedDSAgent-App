@@ -943,7 +943,7 @@ async function sendMessage() {
     try {
         const response = await fetch(`/sessions/${streamSessionId}/chat`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'Accept': 'text/event-stream'},
             body: JSON.stringify({message: text, stream: true}),
             signal: currentAbortController.signal
         });
