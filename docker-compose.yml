@@ -2,16 +2,27 @@ services:
 
   # ---------------------------------------------------------------------------
   # Backend — MedDSAgent REST API
+  # Built from backend.Dockerfile (clones the backend repo during image build).
   # Not exposed on the host; only reachable inside the Docker network via
   # the 'app' service, which reverse-proxies every API call to it.
   # ---------------------------------------------------------------------------
   backend:
-    image: ${BACKEND_IMAGE:?Please set BACKEND_IMAGE in your .env file (see .env.example)}
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+      args:
+        INSTALL_R: ${INSTALL_R:-false}
+        INSTALL_DOCLING: ${INSTALL_DOCLING:-false}
     restart: unless-stopped
     expose:
       - "5000"
     volumes:
       - workspace:/workspace
+    # Networking vars are fixed; all other vars come from .env (see .env.example).
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5000"
+      WORK_DIR: /workspace
     env_file:
       - path: .env
         required: false
@@ -22,6 +33,7 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         INSTALL_R: ${INSTALL_R:-false}
         INSTALL_DOCLING: ${INSTALL_DOCLING:-false}
