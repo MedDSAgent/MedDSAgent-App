@@ -8,6 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libgl1 \
     libglib2.0-0 \
+    # R runtime and compiler toolchain for installing R packages from source
+    r-base \
+    r-base-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Working directory inside the container
@@ -16,6 +22,10 @@ WORKDIR /app
 # Install Python dependencies first (layer-cache friendly)
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Docling is installed separately — it pulls in PyTorch and is ~3 GB.
+# Keeping it in its own layer preserves cache for the lighter deps above.
+RUN pip install --no-cache-dir docling
 
 # Copy application code
 COPY server.py          /app/
