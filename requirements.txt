@@ -1,0 +1,17 @@
+# MedDSAgent-App — frontend server dependencies
+
+# Web framework & ASGI server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP proxy client (supports async streaming for SSE)
+httpx>=0.25.0
+
+# HTML templating
+jinja2>=3.1.0
+
+# Async file I/O (used by Starlette's StaticFiles internally)
+aiofiles>=23.2.0
+
+# Multipart form-data support (required for FastAPI file uploads / proxying)
+python-multipart>=0.0.9
