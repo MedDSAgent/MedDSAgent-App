@@ -1,0 +1,6 @@
+[project]
+name = "meddsagent-app"
+version = "0.1.0"
+description = "Medical Data Science Agent — frontend web application"
+readme = "README.md"
+requires-python = ">=3.10"
