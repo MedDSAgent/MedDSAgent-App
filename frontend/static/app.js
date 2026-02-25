@@ -795,7 +795,7 @@ function renderHistory(steps) {
             }
             // Show tool call if available (skip end_round since it's a control signal)
             if(step.tool_name && step.tool_name !== 'end_round') {
-                appendToolCall(step.tool_name, step.tool_args);
+                appendToolCall(step.tool_name, step.tool_args, step.tool_title);
             }
         } else if(step.type === 'ObservationStep') {
             // Only show if there's actual output (not a placeholder)
@@ -825,7 +825,20 @@ function appendAgentMessage(markdown) {
     $el.find('pre code').each((_, block) => safeHighlight(block));
 }
 
-function appendToolCall(name, args) {
+function toggleStepLog(header) {
+    const arrow = header.querySelector('.step-log-arrow');
+    const content = header.nextElementSibling;
+    const isOpen = arrow.classList.contains('open');
+    if (isOpen) {
+        arrow.classList.remove('open');
+        $(content).slideUp(150);
+    } else {
+        arrow.classList.add('open');
+        $(content).slideDown(150);
+    }
+}
+
+function appendToolCall(name, args, tool_title) {
     let content = args;
     let language = 'json';
     try {
@@ -839,29 +852,33 @@ function appendToolCall(name, args) {
         }
     } catch(e) {}
 
+    const titlePart = tool_title
+        ? `<span class="step-log-title">: ${escapeHtml(tool_title)}</span>`
+        : '';
+
     const html = `
-        <div class="step-box">
-            <div class="step-header" onclick="$(this).next().slideToggle()">
-                <span><i class="fas fa-cogs"></i> ${name}</span>
-                <i class="fas fa-chevron-down small"></i>
+        <div class="step-log">
+            <div class="step-log-header" onclick="toggleStepLog(this)">
+                <i class="fas fa-chevron-right step-log-arrow"></i>
+                <span class="step-log-label"><span class="step-log-name">${escapeHtml(name)}</span>${titlePart}</span>
             </div>
-            <div class="step-content">
+            <div class="step-log-content">
                 <pre><code class="language-${language}">${escapeHtml(content)}</code></pre>
             </div>
         </div>`;
-    
+
     const $element = $(html).appendTo('#chat-history');
     $element.find('pre code').each((i, block) => safeHighlight(block));
 }
 
 function appendToolOutput(output) {
-     const html = `
-        <div class="step-box">
-            <div class="step-header" onclick="$(this).next().slideToggle()">
-                <span><i class="fas fa-terminal"></i> Output</span>
-                <i class="fas fa-chevron-down small"></i>
+    const html = `
+        <div class="step-log">
+            <div class="step-log-header" onclick="toggleStepLog(this)">
+                <i class="fas fa-chevron-right step-log-arrow"></i>
+                <span class="step-log-label"><span class="step-log-name">Output</span></span>
             </div>
-            <div class="step-content">
+            <div class="step-log-content">
                 <pre>${escapeHtml(output)}</pre>
             </div>
         </div>`;
@@ -993,13 +1010,13 @@ async function sendMessage() {
                     // 2. Tool Calls
                     else if(data.type === 'tool_calls') {
                         removeThinking();
-                        const toolCalls = data.data; // Array of {name, arguments}
-                        
+                        const toolCalls = data.data; // Array of {name, arguments, tool_title}
+
                         if (Array.isArray(toolCalls)) {
                             toolCalls.forEach(tool => {
                                 let args = tool.arguments;
                                 if (typeof args !== 'string') args = JSON.stringify(args, null, 2);
-                                appendToolCall(tool.name, args);
+                                appendToolCall(tool.name, args, tool.tool_title);
                             });
                         }
                         scrollToBottom();
@@ -1207,14 +1224,14 @@ async function loadFiles(path = "", container = null) {
         
         if (path === "" && files.length === 0) {
             container.html('<div class="text-center text-muted small mt-5">Empty workspace</div>');
-            
+
             // Add Global Drop Zone Listener on empty state
             bindDragEvents(container, "");
             return;
         }
 
-        files.sort((a,b) => b.is_directory - a.is_directory); 
-        
+        files.sort((a,b) => b.is_directory - a.is_directory);
+
         files.forEach(f => {
             // Determine icons and actions
             const iconClass = f.is_directory ? 'fa-folder text-warning' : 'fa-file-code text-secondary';

@@ -217,6 +217,7 @@ h6.text-muted {
     color: var(--msg-user-text);
     padding: 10px 15px;
     border-radius: 12px 12px 2px 12px;
+    white-space: pre-wrap;
 }
 
 .message.agent { align-self: flex-start; width: 100%; }
@@ -246,32 +247,70 @@ h6.text-muted {
     border-radius: 20px;
 }
 
-.step-box {
-    flex: 0 0 auto;
-    font-size: 0.85em;
-    background: rgba(0,0,0,0.1);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin: 8px 0;
-    overflow: hidden;
+/* --- Markdown Tables in Agent Responses --- */
+.message.agent .bubble table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.8em 0;
+    font-size: 0.9em;
 }
-.step-header {
+.message.agent .bubble th,
+.message.agent .bubble td {
+    border: 1px solid var(--border);
     padding: 6px 10px;
-    cursor: pointer;
-    background: rgba(0,0,0,0.05);
-    display: flex; justify-content: space-between; align-items: center;
+    text-align: left;
+}
+.message.agent .bubble th {
+    background: var(--bg-active);
+    font-weight: bold;
+}
+.message.agent .bubble tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.step-log {
+    flex: 0 0 auto;
+    font-size: 0.82em;
     font-family: monospace;
+    margin: 0;
     color: var(--text-secondary);
 }
-.step-header:hover { color: var(--accent); }
-.step-content {
-    padding: 10px;
-    display: none;
-    background: var(--bg-app);
-    overflow-x: auto;
-    border-top: 1px solid var(--border);
+.step-log-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 0;
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    white-space: nowrap;
 }
-.step-content pre { margin: 0; color: var(--text-muted); font-family: monospace; }
+.step-log-header:hover .step-log-arrow { color: var(--accent); }
+.step-log-arrow {
+    flex-shrink: 0;
+    font-size: 0.7em;
+    transition: transform 0.15s ease;
+    width: 10px;
+    text-align: center;
+}
+.step-log-arrow.open { transform: rotate(90deg); }
+.step-log-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.step-log-label .step-log-name { font-weight: 600; }
+.step-log-label .step-log-title { opacity: 0.75; }
+.step-log-content {
+    display: none;
+    padding: 4px 0 6px 14px;
+    margin-left: 4px;
+    border-left: 2px solid var(--border);
+    overflow-x: auto;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+.step-log-content pre { margin: 0; color: var(--text-muted); font-family: monospace; font-size: 1em; }
 
 /* Input Area */
 .input-wrapper {
@@ -574,6 +613,53 @@ h6.text-muted {
 
 .var-type {
     margin-left: 8px;
+}
+
+/* ==========================================================================
+   Themed Action Buttons (Editor + Session Config)
+   ========================================================================== */
+
+/* Base reset for all editor toolbar buttons and Test Connection */
+.editor-actions .btn,
+#testConnectionBtn {
+    background: transparent;
+    font-size: 0.8em;
+    padding: 3px 10px;
+    border-radius: 5px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    box-shadow: none !important;
+}
+
+/* Primary / Success / Info → accent */
+.editor-actions .btn-outline-primary,
+.editor-actions .btn-outline-success,
+#testConnectionBtn {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.editor-actions .btn-outline-primary:hover:not(:disabled),
+.editor-actions .btn-outline-success:hover:not(:disabled),
+#testConnectionBtn:hover:not(:disabled) {
+    background: rgba(64, 224, 208, 0.12);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Secondary → muted */
+.editor-actions .btn-outline-secondary {
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+.editor-actions .btn-outline-secondary:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+/* Disabled */
+.editor-actions .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 /* ==========================================================================
