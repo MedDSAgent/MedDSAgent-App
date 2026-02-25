@@ -43,6 +43,43 @@ Then open [http://localhost:8000](http://localhost:8000).
 
 ---
 
+## Persisting Session Data to a Local Directory
+
+By default, the agent stores session files inside a Docker named volume (`workspace`), which is managed by Docker and not directly accessible on your host. To store session data in a local directory instead, set the `LOCAL_WORKSPACE` environment variable to an absolute path before starting the stack.
+
+**macOS / Linux**
+
+```bash
+LOCAL_WORKSPACE=/path/to/local/dir docker compose -f docker-compose.hub.yml up
+```
+
+Or export it first:
+
+```bash
+export LOCAL_WORKSPACE=/home/user/medds-workspace
+docker compose -f docker-compose.hub.yml up
+```
+
+**Windows (Command Prompt)**
+
+```cmd
+set LOCAL_WORKSPACE=C:\Users\user\medds-workspace
+docker compose -f docker-compose.hub.yml up
+```
+
+**Windows (PowerShell)**
+
+```powershell
+$env:LOCAL_WORKSPACE = "C:\Users\user\medds-workspace"
+docker compose -f docker-compose.hub.yml up
+```
+
+The directory will be created automatically if it doesn't exist. Files written by the agent (datasets, results, scripts, etc.) will then be directly accessible on your host at that path.
+
+> **Note:** When `LOCAL_WORKSPACE` is not set, the named Docker volume `workspace` is used and data persists across container restarts until you run `docker compose down -v`.
+
+---
+
 ## Stopping the Application
 
 ```bash
