@@ -4,6 +4,7 @@ let layout = null;
 let isDarkMode = true;
 let currentAbortController = null; // For canceling streams
 let isGenerating = false;
+let pendingToolCalls = []; // Buffer tool calls until their paired output arrives
 
 // --- Terminal State ---
 const terminals = {};          // terminalId → { xterm, fitAddon, ws, containerEl, tabEl, title, sessionId }
@@ -947,6 +948,9 @@ async function sendMessage() {
     `);
     scrollToBottom();
 
+    // Reset tool-call pairing buffer for this new run
+    pendingToolCalls = [];
+
     // Toggle to Stop Button
     toggleSendButtonState(true);
     currentAbortController = new AbortController();
@@ -1007,24 +1011,23 @@ async function sendMessage() {
                         scrollToBottom();
                     }
                     
-                    // 2. Tool Calls
+                    // 2. Tool Calls — buffer them; each will be rendered when its paired output arrives
                     else if(data.type === 'tool_calls') {
                         removeThinking();
-                        const toolCalls = data.data; // Array of {name, arguments, tool_title}
-
-                        if (Array.isArray(toolCalls)) {
-                            toolCalls.forEach(tool => {
-                                let args = tool.arguments;
-                                if (typeof args !== 'string') args = JSON.stringify(args, null, 2);
-                                appendToolCall(tool.name, args, tool.tool_title);
-                            });
+                        if (Array.isArray(data.data)) {
+                            pendingToolCalls.push(...data.data);
                         }
-                        scrollToBottom();
                     }
-                    
-                    // 3. Tool Output
+
+                    // 3. Tool Output — render the paired tool call first, then the output
                     else if(data.type === 'tool_output') {
                         removeThinking();
+                        const toolCall = pendingToolCalls.shift();
+                        if (toolCall && toolCall.name !== 'end_round') {
+                            let args = toolCall.arguments;
+                            if (typeof args !== 'string') args = JSON.stringify(args, null, 2);
+                            appendToolCall(toolCall.name, args, toolCall.tool_title);
+                        }
                         appendToolOutput(data.data);
                         scrollToBottom();
                     }
@@ -1037,12 +1040,22 @@ async function sendMessage() {
                     // 4. Done / Error
                     else if(data.type === 'done') {
                         removeThinking();
+                        // Flush any tool calls that arrived without a paired output
+                        while (pendingToolCalls.length > 0) {
+                            const toolCall = pendingToolCalls.shift();
+                            if (toolCall.name !== 'end_round') {
+                                let args = toolCall.arguments;
+                                if (typeof args !== 'string') args = JSON.stringify(args, null, 2);
+                                appendToolCall(toolCall.name, args, toolCall.tool_title);
+                            }
+                        }
                         loadEnvironment();
                         loadFiles();
                         toggleSendButtonState(false);
                     }
                     else if(data.type === 'error') {
                          removeThinking();
+                         pendingToolCalls = [];
                          $('#chat-history').append(`<div class="message agent"><div class="bubble text-danger">${data.data}</div></div>`);
                          toggleSendButtonState(false);
                     }
