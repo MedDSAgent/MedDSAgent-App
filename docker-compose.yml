@@ -8,6 +8,8 @@ services:
       - ${LOCAL_WORKSPACE:-workspace}:/workspace
     environment:
       - WORK_DIR=/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7842/health')"]
       interval: 10s
