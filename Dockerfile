@@ -1,4 +1,10 @@
+# Pull the Docker CLI binary from the official image (avoids apt conflicts)
+FROM docker:cli AS docker-cli
+
 FROM python:3.11-slim
+
+# Copy just the docker CLI binary — no daemon, no extra dependencies
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \

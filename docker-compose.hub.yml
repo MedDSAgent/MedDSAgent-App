@@ -22,9 +22,14 @@ services:
       - "${APP_PORT:-8000}:8000"
     volumes:
       - ${LOCAL_WORKSPACE:-workspace}:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - BACKEND_URL=http://backend:7842
       - WORK_DIR=/workspace
+      # Container name that the integrated terminal will exec into.
+      # Defaults to the name Docker Compose assigns when running this file
+      # as-is.  Override with BACKEND_CONTAINER=<name> if needed.
+      - BACKEND_CONTAINER=${BACKEND_CONTAINER:-meddsagent-app-backend-1}
     depends_on:
       backend:
         condition: service_healthy

@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 RECONNECT_TIMEOUT_SECONDS = 300  # 5 minutes
 
+# When set, terminals exec into this Docker container instead of running bash
+# locally.  Set via the BACKEND_CONTAINER environment variable.
+# Example: "meddsagent-app-backend-1"
+BACKEND_CONTAINER = os.environ.get("BACKEND_CONTAINER", "")
+
 
 class TerminalProcess:
     """A single PTY-backed terminal session."""
@@ -120,12 +125,30 @@ class TerminalManager:
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
 
+        if BACKEND_CONTAINER:
+            # Run bash inside the backend container so the terminal shares the
+            # same Python environment (pandas, matplotlib, pip-installed libs,
+            # etc.) as the agent's Python tool.  The workspace volume is
+            # mounted at the same path in both containers, so --workdir works
+            # transparently.
+            cmd = [
+                "docker", "exec",
+                "-it",
+                f"--workdir={work_dir}",
+                BACKEND_CONTAINER,
+                "/bin/bash",
+            ]
+            subprocess_cwd = None   # cwd is irrelevant for the docker exec host process
+        else:
+            cmd = ["/bin/bash"]
+            subprocess_cwd = work_dir
+
         proc = await asyncio.create_subprocess_exec(
-            "/bin/bash",
+            *cmd,
             stdin=slave_fd,
             stdout=slave_fd,
             stderr=slave_fd,
-            cwd=work_dir,
+            cwd=subprocess_cwd,
             env=env,
             close_fds=True,
             preexec_fn=os.setsid,
