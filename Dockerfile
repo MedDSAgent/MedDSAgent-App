@@ -37,7 +37,7 @@ ENV BACKEND_URL=http://localhost:7842
 # WORK_DIR     — shared workspace root; mount the same volume as the backend
 ENV WORK_DIR=/workspace
 ENV HOST=0.0.0.0
-ENV PORT=8000
+ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV TERM=xterm-256color
 
@@ -45,7 +45,7 @@ ENV TERM=xterm-256color
 RUN mkdir -p /workspace
 
 # Expose the frontend port
-EXPOSE 8000
+EXPOSE 8080
 
 # Start the frontend server
 CMD ["python", "server.py"]

@@ -7,7 +7,7 @@
 | Service | Description | Port |
 |---------|-------------|------|
 | `backend` | MedDSAgent REST API / AI engine | 7842 |
-| `app` | Web UI + WebSocket terminal + reverse proxy | 8000 |
+| `app` | Web UI + WebSocket terminal + reverse proxy | 8080 |
 
 Both services share a persistent `workspace` volume so files written by the agent are immediately accessible in the terminal.
 
@@ -29,7 +29,7 @@ curl -O https://raw.githubusercontent.com/daviden1013/MedDSAgent-App/main/docker
 docker compose -f docker-compose.hub.yml up
 ```
 
-3. Open your browser and navigate to [http://localhost:8000](http://localhost:8000).
+3. Open your browser and navigate to [http://localhost:8080](http://localhost:8080).
 
 ---
 
@@ -39,7 +39,7 @@ docker compose -f docker-compose.hub.yml up
 curl -fsSL https://raw.githubusercontent.com/daviden1013/MedDSAgent-App/main/docker-compose.hub.yml | docker compose -f - up
 ```
 
-Then open [http://localhost:8000](http://localhost:8000).
+Then open [http://localhost:8080](http://localhost:8080).
 
 ---
 
@@ -126,7 +126,7 @@ pip install -r requirements.txt
 BACKEND_URL=http://localhost:7842 python server.py
 ```
 
-Then open **http://localhost:8000** in your browser.
+Then open **http://localhost:8080** in your browser.
 
 ---
 
@@ -135,7 +135,7 @@ Then open **http://localhost:8000** in your browser.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BACKEND_URL` | `http://localhost:5000` | URL of the MedDSAgent backend |
-| `PORT` | `8000` | Port the frontend listens on |
+| `PORT` | `8080` | Port the frontend listens on |
 | `WORK_DIR` | `./workspace` | Shared workspace directory |
 | `RELOAD` | `false` | Enable uvicorn auto-reload |
 

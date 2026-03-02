@@ -19,7 +19,7 @@ services:
   app:
     image: daviden1013/meddsagent-app:latest
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${APP_PORT:-8080}:8080"
     volumes:
       - ${LOCAL_WORKSPACE:-workspace}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock

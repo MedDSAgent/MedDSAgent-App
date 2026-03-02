@@ -9,7 +9,7 @@ Responsibilities:
 Configuration (environment variables):
   BACKEND_URL   URL of the MedDSAgent backend  (default: http://localhost:5000)
   HOST          Bind address                    (default: 0.0.0.0)
-  PORT          HTTP listen port                (default: 8000)
+  PORT          HTTP listen port                (default: 8080)
   WORK_DIR      Shared workspace root           (default: ./workspace)
   RELOAD        Enable uvicorn auto-reload      (default: false)
 """
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:5000").rstrip("/")
 HOST        = os.environ.get("HOST", "0.0.0.0")
-PORT        = int(os.environ.get("PORT", 8000))
+PORT        = int(os.environ.get("PORT", 8080))
 WORK_DIR    = os.environ.get("WORK_DIR", "./workspace")
 
 # =============================================================================
