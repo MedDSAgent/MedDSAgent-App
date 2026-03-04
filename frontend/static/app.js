@@ -794,14 +794,25 @@ function renderHistory(steps) {
             if(step.response) {
                 appendAgentMessage(step.response);
             }
-            // Show tool call if available (skip end_round since it's a control signal)
-            if(step.tool_name && step.tool_name !== 'end_round') {
-                appendToolCall(step.tool_name, step.tool_args, step.tool_title);
+            // Iterate over all tool calls in this turn
+            if (step.tools && Array.isArray(step.tools)) {
+                step.tools.forEach(tool => {
+                    if (tool.tool_name === 'final_response') {
+                        // The final answer is stored inside final_response's args
+                        try {
+                            const args = JSON.parse(tool.tool_args);
+                            if (args.response) appendAgentMessage(args.response);
+                        } catch(e) {}
+                    } else {
+                        appendToolCall(tool.tool_name, tool.tool_args, tool.tool_title);
+                    }
+                });
             }
         } else if(step.type === 'ObservationStep') {
-            // Only show if there's actual output (not a placeholder)
-            if(step.output) {
-                appendToolOutput(step.output);
+            if (step.tool_outputs && Array.isArray(step.tool_outputs)) {
+                step.tool_outputs.forEach(to => {
+                    if (to.output) appendToolOutput(to.output);
+                });
             }
         }
     });
