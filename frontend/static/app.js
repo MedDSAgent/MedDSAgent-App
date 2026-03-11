@@ -24,6 +24,9 @@ let isEditorDirty = false;       // Has unsaved changes
 
 // --- Specialty Editor State ---
 let specialtyAce = null;         // Ace Editor for specialty prompt (inline)
+
+// --- Document Indexing ---
+const INDEXABLE_EXTENSIONS = new Set(['.pdf', '.docx', '.pptx', '.xlsx', '.html', '.htm', '.md', '.txt']);
 let specialtyExpandAce = null;   // Ace Editor for specialty prompt (expand modal)
 let specialtyIndex = null;       // Cached specialty index from API
 let specialtySetProgrammatic = false; // Guard: true when setValue() is called programmatically
@@ -1256,6 +1259,8 @@ async function loadFiles(path = "", container = null) {
 
         files.sort((a,b) => b.is_directory - a.is_directory);
 
+        const indexBadgeFetches = [];
+
         files.forEach(f => {
             // Determine icons and actions
             const iconClass = f.is_directory ? 'fa-folder text-warning' : 'fa-file-code text-secondary';
@@ -1276,6 +1281,12 @@ async function loadFiles(path = "", container = null) {
                 ? `toggleFolder(this, '${f.path}', '${childContainerId}')`
                 : `openFileInEditor('${f.path}')`;
 
+            // Index status badge for indexable files
+            const badgeId = _indexBadgeId(f.path);
+            const indexBadge = (!f.is_directory && isIndexable(f.name))
+                ? `<span class="index-status-badge" id="${badgeId}"></span>`
+                : '';
+
             const html = `
                 <div class="file-node" data-path="${f.path}" data-is-dir="${f.is_directory}">
                     <div class="${fileRowClass}" onclick="${clickAction}">
@@ -1283,6 +1294,7 @@ async function loadFiles(path = "", container = null) {
                             ${caret}
                             <i class="fas ${iconClass} me-2"></i>
                             <span class="text-truncate">${f.name}</span>
+                            ${indexBadge}
                         </div>
                         <div class="file-actions">
                              <span class="file-size me-2">${f.size_human}</span>
@@ -1300,7 +1312,15 @@ async function loadFiles(path = "", container = null) {
             if(f.is_directory) {
                  bindDragEvents(node.find('.file-row'), f.path);
             }
+
+            // Queue index badge fetch for indexable files
+            if (!f.is_directory && isIndexable(f.name)) {
+                indexBadgeFetches.push({ fileName: f.name, badgeId });
+            }
         });
+
+        // Async-fetch index status for all indexable files (non-blocking)
+        indexBadgeFetches.forEach(({ fileName, badgeId }) => fetchAndShowIndexBadge(fileName, badgeId));
         
         // Bind Drag & Drop to the root container if we are at root
         if(path === "") {
@@ -1463,10 +1483,10 @@ function traverseFileTree(item, path) {
 async function uploadFile(file, path) {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // path query param is the directory to upload INTO
     const uploadUrl = `/sessions/${currentSessionId}/files?path=${encodeURIComponent(path)}`;
-    
+
     try {
         const res = await fetch(uploadUrl, {method: 'POST', body: formData});
         if (res.ok) {
@@ -1483,6 +1503,19 @@ async function uploadFile(file, path) {
                     }
                 }
             }
+
+            // Trigger background indexing for parseable files
+            if (isIndexable(file.name)) {
+                try {
+                    await fetch(`/sessions/${currentSessionId}/index`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({file_name: file.name, path: path || 'uploads'})
+                    });
+                } catch(e) {
+                    console.error("Index trigger failed for " + file.name, e);
+                }
+            }
         }
     } catch(e) {
         console.error("Upload failed for " + file.name, e);
@@ -1494,6 +1527,62 @@ async function uploadFilesFromInput(fileList, path) {
         await uploadFile(fileList[i], path);
     }
     loadFiles();
+}
+
+// =============================================================================
+// Document Indexing
+// =============================================================================
+
+function isIndexable(fileName) {
+    const dot = fileName.lastIndexOf('.');
+    const ext = dot !== -1 ? fileName.slice(dot).toLowerCase() : '';
+    return INDEXABLE_EXTENSIONS.has(ext);
+}
+
+function _indexBadgeId(filePath) {
+    return 'idx-' + filePath.replace(/[^a-zA-Z0-9]/g, '-');
+}
+
+function _updateIndexBadge(badgeEl, status, sectionCount, errorMessage) {
+    if (!badgeEl) return;
+    if (status === 'indexing') {
+        badgeEl.innerHTML = '<i class="fas fa-spinner fa-spin index-badge-icon indexing" title="Indexing in progress…"></i>';
+    } else if (status === 'done') {
+        badgeEl.innerHTML = `<i class="fas fa-check-circle index-badge-icon done" title="${sectionCount} sections indexed"></i>`;
+    } else if (status === 'failed') {
+        const msg = escapeHtml(errorMessage || 'Indexing failed');
+        badgeEl.innerHTML = `<i class="fas fa-exclamation-triangle index-badge-icon failed" title="${msg}"></i>`;
+    } else {
+        badgeEl.innerHTML = '';
+    }
+}
+
+async function _pollIndexStatus(fileName, badgeId, maxPolls = 90) {
+    for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+            const res = await fetch(`/sessions/${currentSessionId}/files/${encodeURIComponent(fileName)}/index-status`);
+            if (!res.ok) break;
+            const data = await res.json();
+            const badgeEl = document.getElementById(badgeId);
+            _updateIndexBadge(badgeEl, data.status, data.section_count, data.error_message);
+            if (data.status === 'done' || data.status === 'failed') break;
+        } catch(e) { break; }
+    }
+}
+
+async function fetchAndShowIndexBadge(fileName, badgeId) {
+    if (!currentSessionId) return;
+    try {
+        const res = await fetch(`/sessions/${currentSessionId}/files/${encodeURIComponent(fileName)}/index-status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const badgeEl = document.getElementById(badgeId);
+        _updateIndexBadge(badgeEl, data.status, data.section_count, data.error_message);
+        if (data.status === 'indexing') {
+            _pollIndexStatus(fileName, badgeId);
+        }
+    } catch(e) { /* ignore */ }
 }
 
 function scrollToBottom(force = false) {

@@ -407,6 +407,13 @@ h6.text-muted {
 }
 .file-size { font-size: 0.8em; opacity: 0.5; font-family: monospace; }
 
+/* Index status badge */
+.index-status-badge { display: inline-flex; align-items: center; margin-left: 6px; flex-shrink: 0; }
+.index-badge-icon { font-size: 0.75em; }
+.index-badge-icon.indexing { color: var(--accent); opacity: 0.8; }
+.index-badge-icon.done { color: #28a745; opacity: 0.85; }
+.index-badge-icon.failed { color: var(--danger); opacity: 0.85; }
+
 /* --- Modals & Utility --- */
 .theme-toggle {
     position: absolute; top: 10px; right: 20px; z-index: 1000;
