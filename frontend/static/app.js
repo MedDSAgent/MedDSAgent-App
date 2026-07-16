@@ -1,3 +1,6 @@
+// --- Config Defaults ---
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
 // --- State & Layout ---
 let currentSessionId = null;
 let layout = null;
@@ -184,7 +187,7 @@ $(document).ready(function () {
     $(document).on('click', '#refresh-files', () => loadFiles()); // Reload Root
     
     // Config Visibility Logic
-    $('#llmProviderSelect').change(updateConfigVisibility);
+    $('#llmProviderSelect').change(() => updateConfigVisibility(true));
 
     // Language switch: show/hide DB connection section
     $(document).on('change', 'input[name="language"]', updateLanguageVisibility);
@@ -206,13 +209,23 @@ $(document).ready(function () {
 
 });
 
-function updateConfigVisibility() {
+// providerChanged is true only when the user picked a provider, not when the
+// dialog opens with a saved config that must be left alone.
+function updateConfigVisibility(providerChanged = false) {
     const provider = $('#llmProviderSelect').val();
     $('.conditional-options').hide();
 
     if (provider === 'openai') $('#openai-options').show();
     else if (provider === 'azure') $('#azure-options').show();
-    else if (['vllm', 'sglang', 'openrouter'].includes(provider)) $('#generic-options').show();
+    else if (['vllm', 'sglang', 'openrouter'].includes(provider)) {
+        $('#generic-options').show();
+        const baseUrlInput = $('[name="llm_base_url_generic"]');
+        if (provider === 'openrouter') {
+            if (providerChanged || !baseUrlInput.val()) baseUrlInput.val(OPENROUTER_BASE_URL);
+        } else if (providerChanged && baseUrlInput.val() === OPENROUTER_BASE_URL) {
+            baseUrlInput.val('');
+        }
+    }
 }
 
 function updateLanguageVisibility() {
@@ -1699,9 +1712,7 @@ async function openFileInEditor(filePath) {
     warning.hide();
 
     try {
-        // Encode path segments individually to preserve slashes
-        const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-        const res = await fetch(`/sessions/${currentSessionId}/files/${encodedPath}/content`);
+        const res = await fetch(`/sessions/${currentSessionId}/files/content?path=${encodeURIComponent(filePath)}`);
         if (!res.ok) {
             throw new Error(await res.text());
         }
@@ -1892,9 +1903,7 @@ async function saveCurrentFile() {
     saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
     try {
-        // Encode path segments individually to preserve slashes
-        const encodedPath = currentFilePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-        const res = await fetch(`/sessions/${currentSessionId}/files/${encodedPath}/content`, {
+        const res = await fetch(`/sessions/${currentSessionId}/files/content?path=${encodeURIComponent(currentFilePath)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: content })
